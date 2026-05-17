@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>星特搜索 · 资源搜索</title>
+    <style>
+        :root {
+            --primary-color: #ff6a00;
+            --primary-hover: #e55a00;
+            --bg-color: #ffffff;
+            --card-color: #ffffff;
+            --text-color: #333333;
+            --border-color: #dddddd;
+            --border-radius: 16px;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+        
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .page-title {
+            color: var(--primary-color);
+            font-weight: 600;
+            margin-bottom: 5px;
+            font-size: 2.2rem;
+        }
+        
+        .toolbox-subtitle {
+            color: #666;
+            font-size: 1rem;
+        }
+        
+        .card {
+            background-color: var(--card-color);
+            border-radius: var(--border-radius);
+            border: 1px solid var(--border-color);
+            padding: 30px;
+            margin-bottom: 30px;
+        }
+        
+        .section-title {
+            color: var(--primary-color);
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+        
+        .search-box {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+        }
+        
+        .search-input {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            font-size: 16px;
+        }
+        
+        .search-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 2px rgba(255, 106, 0, 0.2);
+        }
+        
+        .btn {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        
+        .btn:hover {
+            background-color: var(--primary-hover);
+        }
+        
+        .btn:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        
+        .loading {
+            text-align: center;
+            margin: 20px 0;
+            color: var(--primary-color);
+            font-weight: 500;
+        }
+        
+        .error {
+            background-color: rgba(231, 76, 60, 0.1);
+            color: #e74c3c;
+            padding: 12px 15px;
+            border-radius: var(--border-radius);
+            margin: 15px 0;
+            border: 1px solid #e74c3c;
+        }
+        
+        .result-list {
+            width: 100%;
+            border-collapse: collapse;
+            border-radius: var(--border-radius);
+            overflow: hidden;
+        }
+        
+        .result-list thead tr {
+            background-color: #f9f9f9;
+        }
+        
+        .result-list th, .result-list td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .result-list th {
+            font-weight: 600;
+        }
+        
+        .result-list tbody tr:hover {
+            background-color: #f9f9f9;
+        }
+        
+        .video-name {
+            color: var(--primary-color);
+            text-decoration: none;
+            font-weight: 500;
+        }
+        
+        .video-name:hover {
+            text-decoration: underline;
+        }
+        
+        .video-quality {
+            background-color: rgba(39, 174, 96, 0.1);
+            color: #27ae60;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 12px;
+            margin-left: 8px;
+        }
+        
+        .detail-link {
+            color: var(--primary-color);
+            text-decoration: none;
+            cursor: pointer;
+        }
+        
+        .detail-link:hover {
+            text-decoration: underline;
+        }
+        
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 20px;
+        }
+        
+        .page-btn {
+            padding: 8px 12px;
+            border: 1px solid var(--border-color);
+            background: white;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+        }
+        
+        .page-btn:hover:not(:disabled) {
+            background-color: #f5f5f5;
+        }
+        
+        .page-btn.active {
+            background-color: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+        
+        .page-btn:disabled {
+            color: #999;
+            cursor: not-allowed;
+        }
+        
+        .empty {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+
+        /* 各资源区域样式 */
+        .source-result {
+            margin-bottom: 30px;
+        }
+        .source-result:last-child {
+            margin-bottom: 0;
+        }
+        .source-title {
+            color: var(--primary-color);
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            border-left: 5px solid var(--primary-color);
+            padding-left: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1 class="page-title">星特影视</h1>
+            <div class="toolbox-subtitle">XT工具箱<br><br>快速搜索并免费观看影视</div>
+        </div>
+        
+        <div class="card" id="searchView">
+            <h2 class="section-title">搜索影片</h2>
+            
+            <div class="search-box">
+                <input type="text" class="search-input" id="searchInput" placeholder="输入影片名或演员名称">
+                <button class="btn" id="searchBtn">搜索</button>
+            </div>
+            
+            <div id="resultContainer"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://23.225.142.42';
+        const SITE_URL = 'http://23.225.142.42';
+        const SECOND_API_BASE = 'https://hongniuziyuan.net';  // 第二线路（红牛资源）
+        const FOURTH_API_BASE = 'http://ryzyw.com/';           // 第三线路（如意资源）
+
+        let currentPage = 1;
+        let currentKeyword = '';
+        let totalPages = 1;
+
+        // 页面加载时检查URL参数
+        document.addEventListener('DOMContentLoaded', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const searchParam = urlParams.get('SouSuo');
+            
+            if (searchParam) {
+                document.getElementById('searchInput').value = decodeURIComponent(searchParam);
+                currentKeyword = decodeURIComponent(searchParam);
+                search(currentKeyword, 1);
+            }
+        });
+
+        // 更新URL参数函数
+        function updateURL(keyword, page = 1) {
+            const url = new URL(window.location);
+            url.searchParams.set('SouSuo', encodeURIComponent(keyword));
+            if (page > 1) {
+                url.searchParams.set('page', page);
+            } else {
+                url.searchParams.delete('page');
+            }
+            window.history.replaceState(null, '', url.toString());
+        }
+
+        document.getElementById('searchBtn').addEventListener('click', () => {
+            const keyword = document.getElementById('searchInput').value.trim();
+            if (!keyword) {
+                alert('请输入搜索内容');
+                return;
+            }
+            currentKeyword = keyword;
+            currentPage = 1;
+            updateURL(keyword, 1);
+            search(keyword, 1);
+        });
+
+        document.getElementById('searchInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                document.getElementById('searchBtn').click();
+            }
+        });
+
+        // 主搜索函数：并发请求三个源，各自独立渲染
+        async function search(keyword, page = 1) {
+            currentKeyword = keyword;
+            currentPage = page;
+            updateURL(keyword, page);
+
+            const resultContainer = document.getElementById('resultContainer');
+            // 创建三个线路的容器（带标题和加载动画）
+            resultContainer.innerHTML = `
+                <div id="first-source" class="source-result">
+                    <div class="source-title">非凡资源</div>
+                    <div class="loading">加载中...</div>
+                </div>
+                <div id="second-source" class="source-result">
+                    <div class="source-title">红牛资源</div>
+                    <div class="loading">加载中...</div>
+                </div>
+                <div id="fourth-source" class="source-result">
+                    <div class="source-title">如意资源</div>
+                    <div class="loading">加载中...</div>
+                </div>
+            `;
+
+            // 并发请求三个源（不相互等待）
+            fetchFirstSource(keyword, page);
+            fetchSecondSource(keyword);
+            fetchFourthSource(keyword);
+        }
+
+        // 获取并渲染第一线路（非凡资源）
+        async function fetchFirstSource(keyword, page) {
+            const container = document.querySelector('#first-source');
+            try {
+                const url = `${API_BASE}/index.php/vod/search.html?wd=${encodeURIComponent(keyword)}&page=${page}`;
+                console.log('第一线路URL:', url);
+                const response = await fetch(url);
+                if (!response.ok) throw new Error(`请求失败: ${response.status}`);
+                const html = await response.text();
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                
+                const items = doc.querySelectorAll('.videoContent li');
+                const paginationElem = doc.querySelector('.pages span:first-child');
+                const paginationInfo = paginationElem?.textContent || '';
+                
+                const pageMatch = paginationInfo.match(/当前(\d+)\/(\d+)页/);
+                if (pageMatch) {
+                    currentPage = parseInt(pageMatch[1]);
+                    totalPages = parseInt(pageMatch[2]);
+                }
+
+                renderFirstSource(container, items, paginationInfo);
+            } catch (err) {
+                console.error('第一线路错误:', err);
+                container.innerHTML = `<div class="source-title">非凡资源</div><div class="error">加载失败: ${err.message}</div>`;
+            }
+        }
+
+        // 获取并渲染第二线路（红牛资源）
+        async function fetchSecondSource(keyword) {
+            const container = document.querySelector('#second-source');
+            try {
+                const url = `${SECOND_API_BASE}/index.php/vod/search.html?wd=${encodeURIComponent(keyword)}&submit=search&page=1`;
+                console.log('第二线路URL:', url);
+                const response = await fetch(url);
+                if (!response.ok) throw new Error(`请求失败: ${response.status}`);
+                const html = await response.text();
+                const items = parseSecondSource(html);
+                renderSecondSource(container, items);
+            } catch (err) {
+                console.error('第二线路错误:', err);
+                container.innerHTML = `<div class="source-title">红牛资源</div><div class="error">加载失败: ${err.message}</div>`;
+            }
+        }
+
+        // 获取并渲染第三线路（如意资源）
+        async function fetchFourthSource(keyword) {
+            const container = document.querySelector('#fourth-source');
+            try {
+                const url = `${FOURTH_API_BASE}/index.php/vod/search.html?wd=${encodeURIComponent(keyword)}`;
+                console.log('如意资源URL:', url);
+                const response = await fetch(url);
+                if (!response.ok) throw new Error(`请求失败: ${response.status}`);
+                const html = await response.text();
+                const items = parseFourthSource(html);
+                renderFourthSource(container, items);
+            } catch (err) {
+                console.error('如意资源错误:', err);
+                container.innerHTML = `<div class="source-title">如意资源</div><div class="error">加载失败: ${err.message}</div>`;
+            }
+        }
+
+        // 解析第二线路HTML（红牛资源），返回影片对象数组
+        function parseSecondSource(html) {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const items = [];
+
+            const rows = doc.querySelectorAll('.xing_vb ul');
+            for (let ul of rows) {
+                const linkSpan = ul.querySelector('.xing_vb4');
+                if (!linkSpan) continue;
+
+                const a = linkSpan.querySelector('a');
+                if (!a) continue;
+
+                let name = a.textContent.trim();
+                const em = a.querySelector('em');
+                let quality = '';
+                if (em) {
+                    quality = em.textContent.trim();
+                    name = name.replace(quality, '').trim();
+                }
+
+                const href = a.getAttribute('href');
+                const absoluteUrl = href.startsWith('http') ? href : `${SECOND_API_BASE}${href}`;
+
+                const categorySpan = ul.querySelector('.xing_vb5');
+                const category = categorySpan ? categorySpan.textContent.trim() : '';
+
+                const timeSpan = ul.querySelector('.xing_vb7');
+                const time = timeSpan ? timeSpan.textContent.trim() : '';
+
+                const region = '';
+
+                items.push({ name, url: absoluteUrl, region, category, time, quality });
+            }
+            return items;
+        }
+
+        // 解析第三线路HTML（如意资源），返回影片对象数组
+        function parseFourthSource(html) {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const items = [];
+
+            // 选择所有影片行
+            const rows = doc.querySelectorAll('.videoContent li');
+            for (let li of rows) {
+                const nameLink = li.querySelector('.videoName');
+                if (!nameLink) continue;
+
+                let name = nameLink.textContent.trim();
+                // 提取画质标签（位于<i>标签内）
+                const qualityI = nameLink.querySelector('i');
+                let quality = '';
+                if (qualityI) {
+                    quality = qualityI.textContent.trim();
+                    name = name.replace(quality, '').trim();
+                }
+
+                const href = nameLink.getAttribute('href');
+                const absoluteUrl = href.startsWith('http') ? href : `${FOURTH_API_BASE}${href}`;
+
+                // 地区
+                const regionSpan = li.querySelector('.region');
+                const region = regionSpan ? regionSpan.textContent.trim() : '';
+
+                // 类别
+                const categorySpan = li.querySelector('.category.type');
+                const category = categorySpan ? categorySpan.textContent.trim() : '';
+
+                // 更新时间
+                const timeSpan = li.querySelector('.time1');
+                const time = timeSpan ? timeSpan.textContent.trim() : '';
+
+                items.push({ name, url: absoluteUrl, region, category, time, quality });
+            }
+            return items;
+        }
+
+        // 渲染第一线路（非凡资源）
+        function renderFirstSource(container, items, paginationInfo) {
+            if (items.length === 0) {
+                container.innerHTML = '<div class="source-title">非凡资源</div><div class="empty">未找到相关资源</div>';
+                return;
+            }
+
+            let html = `
+                <div class="source-title">非凡资源</div>
+                <div style="color: #666; margin-bottom: 15px;">${paginationInfo}</div>
+                <table class="result-list">
+                    <thead>
+                        <tr>
+                            <th>影片名称</th>
+                            <th>地区</th>
+                            <th>类别</th>
+                            <th>操作</th>
+                            <th>更新时间</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            items.forEach(item => {
+                const nameLink = item.querySelector('.videoName');
+                const nameText = nameLink?.textContent || '';
+                const href = nameLink?.getAttribute('href') || '';
+                const quality = nameLink?.querySelector('i')?.textContent || '';
+                const region = item.querySelector('.region')?.textContent?.trim() || '';
+                const category = item.querySelector('.category')?.textContent?.trim() || '';
+                const time = item.querySelector('.time1')?.textContent?.trim() || '';
+                
+                const nameWithoutQuality = nameText.replace(quality, '').trim();
+                const absoluteUrl = href.startsWith('http') ? href : `${SITE_URL}${href}`;
+                
+                html += `
+                    <tr>
+                        <td>
+                            <a href="${absoluteUrl}" class="video-name" target="_blank" rel="noopener noreferrer">${nameWithoutQuality}</a>
+                            ${quality ? `<span class="video-quality">${quality}</span>` : ''}
+                        </td>
+                        <td>${region}</td>
+                        <td>${category}</td>
+                        <td><a href="XuanJi.html?url=${encodeURIComponent(absoluteUrl)}" class="detail-link">查看详情</a></td>
+                        <td>${time}</td>
+                    </tr>
+                `;
+            });
+
+            html += '</tbody></table>';
+
+            if (totalPages > 1) {
+                html += renderPagination();
+            }
+
+            container.innerHTML = html;
+        }
+
+        // 渲染第二线路（红牛资源）
+        function renderSecondSource(container, items) {
+            if (items.length === 0) {
+                container.innerHTML = '<div class="source-title">红牛资源</div><div class="empty">未找到相关资源</div>';
+                return;
+            }
+
+            let html = `
+                <div class="source-title">红牛资源</div>
+                <table class="result-list">
+                    <thead>
+                        <tr>
+                            <th>影片名称</th>
+                            <th>地区</th>
+                            <th>类别</th>
+                            <th>操作</th>
+                            <th>更新时间</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            items.forEach(item => {
+                html += `
+                    <tr>
+                        <td>
+                            <a href="${item.url}" class="video-name" target="_blank" rel="noopener noreferrer">${item.name}</a>
+                            ${item.quality ? `<span class="video-quality">${item.quality}</span>` : ''}
+                        </td>
+                        <td>${item.region}</td>
+                        <td>${item.category}</td>
+                        <td><a href="XuanJi.html?url=${encodeURIComponent(item.url)}" class="detail-link">查看详情</a></td>
+                        <td>${item.time}</td>
+                    </tr>
+                `;
+            });
+
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+
+        // 渲染第三线路（如意资源）
+        function renderFourthSource(container, items) {
+            if (items.length === 0) {
+                container.innerHTML = '<div class="source-title">如意资源</div><div class="empty">未找到相关资源</div>';
+                return;
+            }
+
+            let html = `
+                <div class="source-title">如意资源</div>
+                <table class="result-list">
+                    <thead>
+                        <tr>
+                            <th>影片名称</th>
+                            <th>地区</th>
+                            <th>类别</th>
+                            <th>操作</th>
+                            <th>更新时间</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            items.forEach(item => {
+                html += `
+                    <tr>
+                        <td>
+                            <a href="${item.url}" class="video-name" target="_blank" rel="noopener noreferrer">${item.name}</a>
+                            ${item.quality ? `<span class="video-quality">${item.quality}</span>` : ''}
+                        </td>
+                        <td>${item.region}</td>
+                        <td>${item.category}</td>
+                        <td><a href="XuanJi.html?url=${encodeURIComponent(item.url)}" class="detail-link">查看详情</a></td>
+                        <td>${item.time}</td>
+                    </tr>
+                `;
+            });
+
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+
+        // 生成分页按钮（用于第一线路）
+        function renderPagination() {
+            let paginationHtml = '<div class="pagination">';
+            
+            paginationHtml += `
+                <button class="page-btn" onclick="changePage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>
+                    上一页
+                </button>
+            `;
+
+            const startPage = Math.max(1, currentPage - 2);
+            const endPage = Math.min(totalPages, startPage + 4);
+            
+            for (let i = startPage; i <= endPage; i++) {
+                paginationHtml += `
+                    <button class="page-btn ${i === currentPage ? 'active' : ''}" onclick="changePage(${i})">
+                        ${i}
+                    </button>
+                `;
+            }
+
+            paginationHtml += `
+                <button class="page-btn" onclick="changePage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>
+                    下一页
+                </button>
+            `;
+
+            paginationHtml += '</div>';
+            return paginationHtml;
+        }
+
+        window.changePage = function(page) {
+            if (page < 1 || page > totalPages) return;
+            search(currentKeyword, page);
+        }
+    </script>
+</body>
+</html>

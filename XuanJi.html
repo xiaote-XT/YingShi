@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>影片选集 · 星特影视</title>
+    <script src="AnNiu.js"></script>
+    <style>
+        :root {
+            --primary-color: #ff6a00;
+            --primary-hover: #e55a00;
+            --bg-color: #ffffff;
+            --card-color: #ffffff;
+            --text-color: #333333;
+            --border-color: #dddddd;
+            --border-radius: 16px;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+        
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .page-title {
+            color: var(--primary-color);
+            font-weight: 600;
+            margin-bottom: 5px;
+            font-size: 2.2rem;
+        }
+
+        /* 选集标题样式 */
+        .section-title {
+            color: var(--primary-color);
+            font-size: 28px;
+            font-weight: 600;
+            text-align: center;
+            margin: 20px 0 30px 0;
+        }
+        
+        .detail-content {
+            background-color: var(--card-color);
+            border-radius: var(--border-radius);
+            padding: 20px;
+            border: 1px solid var(--border-color);
+        }
+        
+        .video-title {
+            font-size: 24px;
+            margin-bottom: 20px;
+            color: var(--text-color);
+        }
+        
+        .video-info {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        
+        .info-item {
+            display: flex;
+        }
+        
+        .info-label {
+            width: 100px;
+            color: #666;
+        }
+        
+        .info-value {
+            flex: 1;
+            color: var(--text-color);
+        }
+        
+        .video-playlists {
+            margin-top: 20px;
+        }
+        
+        .playlist-title {
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: var(--text-color);
+        }
+        
+        .playlist-items {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            position: relative;
+        }
+        
+        .playlist-item {
+            padding: 8px 16px;
+            background-color: #f5f5f5;
+            border-radius: var(--border-radius);
+            text-decoration: none;
+            color: var(--text-color);
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.2s, color 0.2s;
+            cursor: pointer;
+        }
+        
+        .playlist-item:hover {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        /* 高亮当前播放集数 */
+        .playlist-item.active {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        
+        /* 收藏星标 */
+        .playlist-item.starred::after {
+            content: "★";
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            font-size: 16px;
+            color: gold;
+            text-shadow: 0 0 2px rgba(0,0,0,0.5);
+            background: transparent;
+            pointer-events: none;
+        }
+        
+        .loading {
+            text-align: center;
+            margin: 20px 0;
+            color: var(--primary-color);
+            font-weight: 500;
+        }
+        
+        .error {
+            background-color: rgba(231, 76, 60, 0.1);
+            color: #e74c3c;
+            padding: 12px 15px;
+            border-radius: var(--border-radius);
+            margin: 15px 0;
+            border: 1px solid #e74c3c;
+        }
+        
+        .empty {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 选集大标题（居中） -->
+        <h2 class="section-title">选集</h2>
+        <div id="detailContainer" class="detail-content">
+            <div class="loading">加载详情中...</div>
+        </div>
+    </div>
+
+    <script>
+        const SITE_URL = 'http://23.225.142.42';
+        const FAVORITES_KEY = 'favorites'; // 收藏键名
+        const PLAY_HISTORY_PREFIX = 'playHistory_'; // 播放历史前缀
+
+        // ----- 收藏相关函数 -----
+        function getFavorites() {
+            const stored = localStorage.getItem(FAVORITES_KEY);
+            return stored ? new Set(JSON.parse(stored)) : new Set();
+        }
+
+        function saveFavorites(favoritesSet) {
+            localStorage.setItem(FAVORITES_KEY, JSON.stringify([...favoritesSet]));
+        }
+
+        function toggleFavorite(url, buttonElement) {
+            const favorites = getFavorites();
+            if (favorites.has(url)) {
+                favorites.delete(url);
+                buttonElement.classList.remove('starred');
+            } else {
+                favorites.add(url);
+                buttonElement.classList.add('starred');
+            }
+            saveFavorites(favorites);
+        }
+
+        // ----- 播放历史相关函数 -----
+        // 获取当前影片的播放历史键名（基于详情页URL）
+        function getHistoryKey(detailUrl) {
+            return PLAY_HISTORY_PREFIX + encodeURIComponent(detailUrl);
+        }
+
+        // 保存最后播放的集数URL
+        function saveLastPlayed(detailUrl, episodeUrl) {
+            if (!detailUrl || !episodeUrl) return;
+            const key = getHistoryKey(detailUrl);
+            localStorage.setItem(key, episodeUrl);
+        }
+
+        // 获取最后播放的集数URL
+        function getLastPlayed(detailUrl) {
+            if (!detailUrl) return null;
+            const key = getHistoryKey(detailUrl);
+            return localStorage.getItem(key);
+        }
+
+        // 清除所有播放按钮的高亮
+        function clearAllActive() {
+            document.querySelectorAll('.playlist-item.active').forEach(el => {
+                el.classList.remove('active');
+            });
+        }
+
+        // 从 URL 获取影片详情页地址
+        function getDetailUrlFromParams() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const encodedUrl = urlParams.get('url');
+            if (encodedUrl) {
+                return decodeURIComponent(encodedUrl);
+            }
+            return null;
+        }
+
+        // 页面加载时自动加载详情
+        document.addEventListener('DOMContentLoaded', function() {
+            const detailUrl = getDetailUrlFromParams();
+            if (detailUrl) {
+                loadDetail(detailUrl);
+            } else {
+                document.getElementById('detailContainer').innerHTML = '<div class="error">未指定影片详情地址</div>';
+            }
+        });
+
+        /**
+         * 从链接元素中提取真实的集数名称
+         */
+        function extractEpisodeName(link, index) {
+            let name = link.getAttribute('title')?.trim();
+            if (name && name.length > 0) return name;
+
+            const rawText = link.textContent?.trim() || '';
+            if (rawText) {
+                const parts = rawText.split('$');
+                let candidate = parts[0].trim();
+                if (candidate && candidate.length > 0) return candidate;
+            }
+
+            return `第${index + 1}集`;
+        }
+
+        // 红牛资源专用解析函数：从doc中提取播放列表，若成功返回playlists数组，否则返回null
+        function parseHongniuPlaylists(doc, baseUrl) {
+            const playlists = [];
+            // 查找所有播放容器
+            const playContainers = doc.querySelectorAll('.vodplayinfo div[id^="play_"]');
+            if (playContainers.length === 0) return null;
+
+            playContainers.forEach((container, idx) => {
+                // 获取线路名称：通常为h3内的文本，如 "播放类型：hnm3u8"
+                const h3 = container.querySelector('h3');
+                let lineTitle = `线路${idx + 1}`;
+                if (h3) {
+                    const raw = h3.textContent.trim();
+                    // 提取 "hnm3u8" 部分
+                    const match = raw.match(/[：:]\s*(\S+)/);
+                    if (match && match[1]) {
+                        lineTitle = match[1];
+                    } else {
+                        lineTitle = raw.replace(/播放类型[：:]?\s*/i, '').trim() || lineTitle;
+                    }
+                }
+
+                const items = [];
+                // 查找所有链接（通常在li内）
+                const links = container.querySelectorAll('li a');
+                links.forEach((link, linkIdx) => {
+                    let url = link.getAttribute('href');
+                    if (!url) return;
+                    // 转换为绝对地址
+                    if (!url.startsWith('http')) {
+                        try {
+                            url = new URL(url, baseUrl).href;
+                        } catch (e) {
+                            console.warn('URL拼接失败', url);
+                            return;
+                        }
+                    }
+                    const name = extractEpisodeName(link, linkIdx);
+                    items.push({ name, url });
+                });
+
+                if (items.length > 0) {
+                    playlists.push({ title: lineTitle, items });
+                }
+            });
+
+            return playlists.length > 0 ? playlists : null;
+        }
+
+        async function loadDetail(detailUrl) {
+            const detailContainer = document.getElementById('detailContainer');
+            detailContainer.innerHTML = '<div class="loading">加载详情中...</div>';
+            
+            try {
+                console.log('详情URL:', detailUrl);
+                const response = await fetch(detailUrl);
+                
+                if (!response.ok) {
+                    throw new Error(`获取详情失败: ${response.status}`);
+                }
+
+                const html = await response.text();
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                
+                // ---------- 优先从“片名：”提取真正的影片标题 ----------
+                let movieTitle = '';
+                const rightPs = doc.querySelectorAll('.right p');
+                rightPs.forEach(p => {
+                    const text = p.textContent.trim();
+                    if (text.startsWith('片名：')) {
+                        movieTitle = text.substring(3).trim();
+                    }
+                });
+                // 如果没有找到片名，回退到原有标题选择器
+                if (!movieTitle) {
+                    movieTitle = doc.querySelector('h1, .vod-title, .title, .vodh h2')?.textContent?.trim() || '影片详情';
+                }
+                
+                const infoItems = [];
+                const infoElements = doc.querySelectorAll('.vodinfobox li, .video-info li, .vod-info li');
+                
+                infoElements.forEach(li => {
+                    const text = li.textContent?.trim();
+                    if (text && text.includes('：')) {
+                        infoItems.push(text);
+                    }
+                });
+                
+                // 尝试红牛解析
+                const baseUrl = new URL(detailUrl).origin;
+                let playlists = parseHongniuPlaylists(doc, baseUrl);
+                let playlistFound = !!playlists;
+
+                // 如果红牛解析失败，使用通用解析
+                if (!playlistFound) {
+                    playlists = [];
+                    const possibleSelectors = [
+                        '.playlist', '.playlist-box', '.vodlist', '.playlist-list',
+                        '.playlist-container', '.play-source', '.vod-play',
+                        '.playlist-wrapper', '.player-wrap', '.play-box',
+                        '.module-play-list', '.video-play-list', '.play-list',
+                        '.mac_playlist', '.playlist_source'
+                    ];
+                    
+                    for (const selector of possibleSelectors) {
+                        const playlistElements = doc.querySelectorAll(selector);
+                        
+                        if (playlistElements.length > 0) {
+                            playlistFound = true;
+                            
+                            playlistElements.forEach((playlist, index) => {
+                                const title = `线路${index + 1}`;
+                                const items = [];
+                                
+                                // 直接查找播放链接 <a>
+                                playlist.querySelectorAll('a').forEach((link, linkIndex) => {
+                                    const url = link.getAttribute('href');
+                                    if (url && (url.includes('.m3u8') || url.includes('.mp4') || url.includes('play'))) {
+                                        const absoluteUrl = url.startsWith('http') ? url : `${SITE_URL}${url}`;
+                                        const episodeName = extractEpisodeName(link, linkIndex);
+                                        items.push({ name: episodeName, url: absoluteUrl });
+                                    }
+                                });
+                                
+                                // 如果直接找 <a> 没有结果，尝试查找 <li> 内部的结构
+                                if (items.length === 0) {
+                                    playlist.querySelectorAll('li').forEach((li, liIndex) => {
+                                        const link = li.querySelector('a');
+                                        if (link) {
+                                            const url = link.getAttribute('href');
+                                            if (url) {
+                                                const absoluteUrl = url.startsWith('http') ? url : `${SITE_URL}${url}`;
+                                                const episodeName = extractEpisodeName(link, liIndex);
+                                                items.push({ name: episodeName, url: absoluteUrl });
+                                            }
+                                        }
+                                    });
+                                }
+                                
+                                if (items.length > 0) {
+                                    playlists.push({ title, items });
+                                }
+                            });
+                            break; // 找到有效选择器后退出循环
+                        }
+                    }
+                    
+                    // 如果常规选择器未找到，则回退到页面中所有看起来像播放链接的 <a>
+                    if (!playlistFound) {
+                        const allLinks = doc.querySelectorAll('a');
+                        const videoLinks = [];
+                        
+                        allLinks.forEach((link, index) => {
+                            const url = link.getAttribute('href');
+                            if (url && (url.includes('play') || url.includes('vod') || url.includes('index.php/vod/play'))) {
+                                const absoluteUrl = url.startsWith('http') ? url : `${SITE_URL}${url}`;
+                                const episodeName = extractEpisodeName(link, index);
+                                videoLinks.push({
+                                    name: episodeName,
+                                    url: absoluteUrl
+                                });
+                            }
+                        });
+                        
+                        if (videoLinks.length > 0) {
+                            for (let i = 0; i < Math.min(3, videoLinks.length); i++) {
+                                playlists.push({
+                                    title: `线路${i + 1}`,
+                                    items: [videoLinks[i]]
+                                });
+                            }
+                            playlistFound = true;
+                        }
+                    }
+                }
+                
+                let detailHtml = `
+                    <h2 class="video-title">${movieTitle}</h2>
+                    <div class="video-info">
+                `;
+                
+                infoItems.forEach(info => {
+                    const [label, value] = info.split('：');
+                    if (label && value) {
+                        detailHtml += `
+                            <div class="info-item">
+                                <div class="info-label">${label}：</div>
+                                <div class="info-value">${value}</div>
+                            </div>
+                        `;
+                    }
+                });
+                
+                detailHtml += '</div>';
+                
+                if (playlistFound && playlists.length > 0) {
+                    const displayPlaylists = playlists.slice(0, 3);
+                    
+                    displayPlaylists.forEach((playlist, playlistIndex) => {
+                        detailHtml += `
+                            <div class="video-playlists">
+                                <div class="playlist-title">${playlist.title}</div>
+                                <div class="playlist-items">
+                        `;
+                        
+                        playlist.items.forEach((item) => {
+                            detailHtml += `
+                                <a href="${item.url}" class="playlist-item" target="_blank" rel="noopener noreferrer" data-url="${item.url}">
+                                    ${item.name}
+                                </a>
+                            `;
+                        });
+                        
+                        detailHtml += `
+                                </div>
+                            </div>
+                        `;
+                    });
+                } else {
+                    detailHtml += `
+                        <div class="empty">
+                            暂无播放列表信息<br/>
+                            <a href="${detailUrl}" target="_blank" rel="noopener noreferrer">点击查看原页面</a>
+                        </div>
+                    `;
+                }
+                
+                detailContainer.innerHTML = detailHtml;
+
+                // ----- 事件绑定与状态恢复 -----
+                const favoriteSet = getFavorites();
+                const lastPlayedUrl = getLastPlayed(detailUrl); // 获取上次播放的集数URL
+
+                document.querySelectorAll('.playlist-item').forEach(btn => {
+                    const url = btn.getAttribute('data-url');
+                    if (!url) return;
+
+                    // 初始化收藏星标
+                    if (favoriteSet.has(url)) {
+                        btn.classList.add('starred');
+                    }
+
+                    // 初始化播放历史高亮（如果匹配上次播放的URL）
+                    if (lastPlayedUrl && url === lastPlayedUrl) {
+                        btn.classList.add('active');
+                    }
+
+                    // 点击事件：记录播放历史并切换高亮（同时允许链接跳转）
+                    btn.addEventListener('click', (e) => {
+                        // 移除所有按钮的高亮
+                        clearAllActive();
+                        // 为当前按钮添加高亮
+                        btn.classList.add('active');
+                        // 保存本次播放记录
+                        saveLastPlayed(detailUrl, url);
+                        // 注意：不阻止默认行为，链接正常跳转
+                    });
+
+                    // 长按收藏事件（右键/长按）
+                    btn.addEventListener('contextmenu', (e) => {
+                        e.preventDefault(); // 阻止默认右键菜单
+                        toggleFavorite(url, btn);
+                    });
+                });
+                
+            } catch (error) {
+                detailContainer.innerHTML = `
+                    <div class="error">
+                        加载详情失败: ${error.message}<br/>
+                        您可以选择 <a href="${detailUrl}" target="_blank" rel="noopener noreferrer">在新窗口中查看原页面</a>
+                    </div>
+                `;
+                console.error('详情页错误:', error);
+            }
+        }
+    </script>
+</body>
+</html>

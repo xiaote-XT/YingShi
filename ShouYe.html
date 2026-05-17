@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>星特影视 - 影视推荐</title>
+    <script src="AnNiu.js"></script>
+    <style>
+        /* 完全使用搜索页面的CSS样式 */
+        :root {
+            --primary-color: #ff6a00;
+            --primary-hover: #e55a00;
+            --bg-color: #ffffff;
+            --card-color: #ffffff;
+            --text-color: #333333;
+            --border-color: #dddddd;
+            --border-radius: 16px;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+        
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .page-title {
+            color: var(--primary-color);
+            font-weight: 600;
+            margin-bottom: 5px;
+            font-size: 2.2rem;
+        }
+        
+        .toolbox-subtitle {
+            color: #666;
+            font-size: 1rem;
+        }
+        
+        .card {
+            background-color: var(--card-color);
+            border-radius: var(--border-radius);
+            border: 1px solid var(--border-color);
+            padding: 30px;
+            margin-bottom: 30px;
+        }
+        
+        .section-title {
+            color: var(--primary-color);
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+        
+        /* 搜索框样式 */
+        .search-box {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+        }
+        
+        .search-input {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            font-size: 16px;
+        }
+        
+        .search-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 2px rgba(255, 106, 0, 0.2);
+        }
+        
+        .btn {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        
+        .btn:hover {
+            background-color: var(--primary-hover);
+        }
+        
+        .btn:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        
+        /* 筛选标签样式 */
+        .filter-tabs {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .filter-group {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 5px;
+            margin-right: 20px;
+        }
+        
+        .filter-label {
+            color: #666;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        .filter-btn {
+            padding: 6px 12px;
+            background: #f5f5f5;
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+        
+        .filter-btn:hover {
+            background: #e9e9e9;
+        }
+        
+        .filter-btn.active {
+            background-color: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+        
+        /* 影视网格布局 */
+        .video-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .video-item {
+            border-radius: var(--border-radius);
+            overflow: hidden;
+            transition: transform 0.3s, box-shadow 0.3s;
+            cursor: pointer;
+        }
+        
+        .video-item:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+        
+        .video-cover {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 3/4;
+            overflow: hidden;
+            border-radius: var(--border-radius);
+            background: linear-gradient(135deg, #f5f5f5, #e0e0e0);
+        }
+        
+        .video-cover img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.3s;
+        }
+        
+        .video-item:hover .video-cover img {
+            transform: scale(1.05);
+        }
+        
+        .video-badges {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            right: 8px;
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        .video-score {
+            background-color: rgba(255, 106, 0, 0.9);
+            color: white;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .video-source {
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        
+        .video-remark {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 6px 8px;
+            font-size: 12px;
+            backdrop-filter: blur(2px);
+        }
+        
+        .video-info {
+            padding: 12px 5px 5px;
+        }
+        
+        .video-name {
+            font-size: 14px;
+            font-weight: 500;
+            line-height: 1.4;
+            margin-bottom: 5px;
+            color: var(--text-color);
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        
+        .video-meta {
+            display: flex;
+            justify-content: space-between;
+            color: #666;
+            font-size: 12px;
+        }
+        
+        /* 加载状态 */
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: var(--primary-color);
+        }
+        
+        .empty {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+        
+        .error {
+            background-color: rgba(231, 76, 60, 0.1);
+            color: #e74c3c;
+            padding: 12px 15px;
+            border-radius: var(--border-radius);
+            margin: 15px 0;
+            border: 1px solid #e74c3c;
+        }
+        
+        /* 响应式调整 */
+        @media (max-width: 768px) {
+            .video-grid {
+                grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+                gap: 15px;
+            }
+            
+            .filter-group {
+                width: 100%;
+                margin-bottom: 10px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .video-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .card {
+                padding: 20px 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1 class="page-title">星特影视</h1>
+            <div class="toolbox-subtitle">XT工具箱<br><br>每日精选影视推荐</div>
+        </div>
+        
+        <div class="card">
+            <h2 class="section-title">影视推荐</h2>
+            
+            <!-- 搜索框 -->
+            <div class="search-box">
+                <input type="text" class="search-input" id="searchInput" placeholder="输入影片名或演员名称">
+                <button class="btn" id="searchBtn">搜索</button>
+            </div>
+            
+            <!-- 筛选标签区域 -->
+            <div class="filter-tabs">
+                <!-- 主分类 -->
+                <div class="filter-group">
+                    <div class="filter-label">分类：</div>
+                    <button class="filter-btn active" data-type="class" data-id="film">电影</button>
+                    <button class="filter-btn" data-type="class" data-id="teleplay">电视剧</button>
+                    <button class="filter-btn" data-type="class" data-id="tvshow">综艺</button>
+                    <button class="filter-btn" data-type="class" data-id="cartoon">动漫</button>
+                </div>
+                
+                <!-- 类型 -->
+                <div class="filter-group">
+                    <div class="filter-label">类型：</div>
+                    <button class="filter-btn active" data-type="style" data-id="">全部</button>
+                </div>
+                
+                <!-- 地区 -->
+                <div class="filter-group">
+                    <div class="filter-label">地区：</div>
+                    <button class="filter-btn active" data-type="zone" data-id="">全部</button>
+                </div>
+                
+                <!-- 年代 -->
+                <div class="filter-group">
+                    <div class="filter-label">年代：</div>
+                    <button class="filter-btn active" data-type="year" data-id="">全部</button>
+                </div>
+                
+                <!-- 排序 -->
+                <div class="filter-group">
+                    <div class="filter-label">排序：</div>
+                    <button class="filter-btn active" data-type="order" data-id="">最热</button>
+                    <button class="filter-btn" data-type="order" data-id="time">最新</button>
+                    <button class="filter-btn" data-type="order" data-id="score">好评</button>
+                </div>
+            </div>
+            
+            <!-- 影视列表容器 -->
+            <div id="videoList" class="video-grid">
+                <!-- 这里会动态加载影视内容 -->
+            </div>
+            
+            <!-- 加载更多按钮 -->
+            <div style="text-align: center; margin-top: 30px;">
+                <button class="btn" id="loadMoreBtn" style="display: none;">加载更多</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 当前年份自动识别
+        const currentYear = new Date().getFullYear();
+        
+        // 配置
+        const API_BASE = 'https://waptv.sogou.com';
+        const ITEMS_PER_PAGE = 15;
+        let currentPage = 1;
+        let currentClass = 'film';      // 分类
+        let currentStyle = '';          // 类型
+        let currentZone = '';           // 地区
+        let currentYearFilter = '';     // 年代
+        let currentOrder = '';          // 排序
+        let isLoading = false;
+        let hasMore = true;
+        
+        // 筛选数据存储
+        let styleData = [{name: "全部", id: ""}];
+        let zoneData = [{name: "全部", id: ""}];
+        let yearData = [{name: "全部", id: ""}];
+        
+        // 初始化页面
+        document.addEventListener('DOMContentLoaded', function() {
+            // 绑定搜索按钮事件
+            document.getElementById('searchBtn').addEventListener('click', performSearch);
+            document.getElementById('searchInput').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    performSearch();
+                }
+            });
+            
+            // 绑定筛选按钮点击事件
+            bindFilterEvents();
+            
+            // 绑定加载更多按钮事件
+            document.getElementById('loadMoreBtn').addEventListener('click', loadMoreVideos);
+            
+            // 加载初始数据
+            loadVideos(true);
+        });
+        
+        // 执行搜索
+        function performSearch() {
+            const keyword = document.getElementById('searchInput').value.trim();
+            if (keyword) {
+                // 跳转到搜索页面，带上搜索关键词
+                window.location.href = `SouSuo.html?SouSuo=${encodeURIComponent(keyword)}`;
+            } else {
+                alert('请输入搜索内容');
+            }
+        }
+        
+        // 绑定筛选按钮事件
+        function bindFilterEvents() {
+            const filterButtons = document.querySelectorAll('.filter-btn');
+            filterButtons.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const type = this.dataset.type;
+                    const id = this.dataset.id;
+                    
+                    // 移除同组的其他按钮的active状态
+                    const group = this.closest('.filter-group');
+                    group.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    // 更新当前筛选条件
+                    switch(type) {
+                        case 'class':
+                            if (currentClass !== id) {
+                                currentClass = id;
+                                resetFilters();
+                                loadVideos(true);
+                            }
+                            break;
+                        case 'style':
+                            if (currentStyle !== id) {
+                                currentStyle = id;
+                                loadVideos(true);
+                            }
+                            break;
+                        case 'zone':
+                            if (currentZone !== id) {
+                                currentZone = id;
+                                loadVideos(true);
+                            }
+                            break;
+                        case 'year':
+                            if (currentYearFilter !== id) {
+                                currentYearFilter = id;
+                                loadVideos(true);
+                            }
+                            break;
+                        case 'order':
+                            if (currentOrder !== id) {
+                                currentOrder = id;
+                                loadVideos(true);
+                            }
+                            break;
+                    }
+                });
+            });
+        }
+        
+        // 重置筛选条件
+        function resetFilters() {
+            currentStyle = '';
+            currentZone = '';
+            currentYearFilter = '';
+            currentOrder = '';
+            currentPage = 1;
+            
+            // 重置筛选按钮状态
+            const filterGroups = document.querySelectorAll('.filter-group');
+            filterGroups.forEach((group, index) => {
+                if (index > 0) { // 跳过主分类
+                    const firstBtn = group.querySelector('.filter-btn');
+                    group.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                    if (firstBtn) firstBtn.classList.add('active');
+                }
+            });
+            
+            // 清除动态筛选选项
+            updateFilterOptions('style', [{name: "全部", id: ""}]);
+            updateFilterOptions('zone', [{name: "全部", id: ""}]);
+            updateFilterOptions('year', [{name: "全部", id: ""}]);
+        }
+        
+        // 更新筛选选项
+        function updateFilterOptions(type, data) {
+            const group = document.querySelector(`.filter-group:nth-child(${getGroupIndex(type)})`);
+            if (!group) return;
+            
+            // 移除现有选项（保留第一个"全部"选项）
+            const allBtn = group.querySelector('.filter-btn[data-id=""]');
+            group.innerHTML = `<div class="filter-label">${getLabelText(type)}：</div>`;
+            
+            // 重新添加所有选项
+            data.forEach(item => {
+                const btn = document.createElement('button');
+                btn.className = 'filter-btn';
+                btn.dataset.type = type;
+                btn.dataset.id = item.id || '';
+                btn.textContent = item.name;
+                
+                // 设置默认选中状态
+                if ((type === 'style' && item.id === currentStyle) ||
+                    (type === 'zone' && item.id === currentZone) ||
+                    (type === 'year' && item.id === currentYearFilter)) {
+                    btn.classList.add('active');
+                } else if (item.id === '' && !group.querySelector('.filter-btn.active')) {
+                    btn.classList.add('active');
+                }
+                
+                btn.addEventListener('click', function() {
+                    group.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    if (type === 'style') currentStyle = this.dataset.id;
+                    else if (type === 'zone') currentZone = this.dataset.id;
+                    else if (type === 'year') currentYearFilter = this.dataset.id;
+                    
+                    loadVideos(true);
+                });
+                
+                group.appendChild(btn);
+            });
+        }
+        
+        // 获取筛选组的索引
+        function getGroupIndex(type) {
+            switch(type) {
+                case 'style': return 2;
+                case 'zone': return 3;
+                case 'year': return 4;
+                default: return 2;
+            }
+        }
+        
+        // 获取标签文本
+        function getLabelText(type) {
+            switch(type) {
+                case 'style': return '类型';
+                case 'zone': return '地区';
+                case 'year': return '年代';
+                default: return '';
+            }
+        }
+        
+        // 加载视频列表
+        async function loadVideos(reset = false) {
+            if (isLoading) return;
+            
+            isLoading = true;
+            const videoList = document.getElementById('videoList');
+            
+            if (reset) {
+                currentPage = 1;
+                hasMore = true;
+                videoList.innerHTML = '<div class="loading">加载中...</div>';
+                document.getElementById('loadMoreBtn').style.display = 'none';
+            } else {
+                const loadMoreBtn = document.getElementById('loadMoreBtn');
+                loadMoreBtn.disabled = true;
+                loadMoreBtn.textContent = '加载中...';
+            }
+            
+            try {
+                const start = (currentPage - 1) * ITEMS_PER_PAGE;
+                const apiUrl = `${API_BASE}/napi/video/classlist?abtest=5&iploc=CN3205&spver=0&listTab=${currentClass}&filter=&start=${start}&len=${ITEMS_PER_PAGE}&emcee=&fr=filter&style=${currentStyle}&zone=${currentZone}&year=${currentYearFilter}&fee=&order=${currentOrder}`;
+                
+                console.log('API请求URL:', apiUrl);
+                
+                const response = await fetch(apiUrl, {
+                    headers: {
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                        'Accept': 'application/json',
+                        'Referer': 'https://waptv.sogou.com/'
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`API请求失败: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                if (reset) {
+                    videoList.innerHTML = '';
+                    
+                    // 处理筛选条件
+                    if (data.listData?.list?.filter_list) {
+                        processFilterData(data.listData.list.filter_list);
+                    }
+                }
+                
+                // 处理视频数据
+                if (data.listData?.results) {
+                    renderVideos(data.listData.results, reset);
+                    
+                    // 检查是否还有更多数据
+                    hasMore = data.listData.results.length === ITEMS_PER_PAGE;
+                } else {
+                    if (reset) {
+                        videoList.innerHTML = '<div class="empty">暂无影视数据</div>';
+                    }
+                    hasMore = false;
+                }
+                
+            } catch (error) {
+                console.error('加载视频失败:', error);
+                if (reset) {
+                    videoList.innerHTML = `
+                        <div class="error">
+                            加载失败: ${error.message}<br/>
+                            请检查网络连接或稍后重试
+                        </div>
+                    `;
+                }
+                hasMore = false;
+            } finally {
+                isLoading = false;
+                
+                if (!reset) {
+                    const loadMoreBtn = document.getElementById('loadMoreBtn');
+                    loadMoreBtn.disabled = false;
+                    loadMoreBtn.textContent = '加载更多';
+                }
+                
+                updateLoadMoreButton();
+            }
+        }
+        
+        // 处理筛选数据
+        function processFilterData(filterList) {
+            filterList.forEach(filter => {
+                if (filter.name === "类型" && filter.option_list) {
+                    styleData = [{name: "全部", id: ""}];
+                    filter.option_list.forEach(opt => {
+                        styleData.push({name: opt, id: opt});
+                    });
+                    updateFilterOptions('style', styleData);
+                }
+                
+                if (filter.name === "地区" && filter.option_list) {
+                    zoneData = [{name: "全部", id: ""}];
+                    filter.option_list.forEach(opt => {
+                        zoneData.push({name: opt, id: opt});
+                    });
+                    updateFilterOptions('zone', zoneData);
+                }
+                
+                if (filter.name === "年代" && filter.option_list) {
+                    yearData = [{name: "全部", id: ""}];
+                    filter.option_list.forEach(opt => {
+                        yearData.push({name: opt, id: opt});
+                    });
+                    updateFilterOptions('year', yearData);
+                }
+            });
+        }
+        
+        // 渲染视频列表
+        function renderVideos(videos, reset) {
+            const videoList = document.getElementById('videoList');
+            
+            if (reset) {
+                videoList.innerHTML = '';
+            }
+            
+            if (videos.length === 0) {
+                if (reset) {
+                    videoList.innerHTML = '<div class="empty">暂无相关影视</div>';
+                }
+                return;
+            }
+            
+            videos.forEach(video => {
+                const videoItem = createVideoElement(video);
+                videoList.appendChild(videoItem);
+            });
+        }
+        
+        // 创建视频元素
+        function createVideoElement(video) {
+            const item = document.createElement('div');
+            item.className = 'video-item';
+            
+            // 处理评分
+            const score = video.score || 'N/A';
+            
+            // 处理备注信息
+            let remark = '';
+            const className = document.querySelector('.filter-btn.active[data-type="class"]').textContent;
+            
+            if (className === '电影') {
+                remark = video.year || currentYear.toString();
+            } else if (className === '电视剧' || className === '动漫') {
+                if (video.ipad_play_for_list?.episode) {
+                    remark = `更新至${video.ipad_play_for_list.episode}集`;
+                } else {
+                    remark = video.year || '连载中';
+                }
+            } else if (className === '综艺') {
+                if (video.ipad_play_for_list?.last_update) {
+                    const time = video.ipad_play_for_list.last_update;
+                    const year = time.substring(0, 4);
+                    const month = time.substring(4, 6);
+                    const day = time.substring(6, 8);
+                    remark = `${year}-${month}-${day}期`;
+                } else {
+                    remark = video.year || '更新中';
+                }
+            }
+            
+            // 处理封面图
+            const coverUrl = video.v_picurl || 'https://via.placeholder.com/180x240?text=No+Image';
+            
+            item.innerHTML = `
+                <div class="video-cover">
+                    <img src="${coverUrl}" alt="${video.name}" 
+                         onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTgwIiBoZWlnaHQ9IjI0MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjVjYjhhIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtc2l6ZT0iMTQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIwLjNlbSIgZmlsbD0iI2ZmNmEwMCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIj7mupDnoIHlm77kuao8L3RleHQ+PC9zdmc+'">
+                    <div class="video-badges">
+                        <div class="video-score">${score}</div>
+                        <div class="video-source">搜狗视频</div>
+                    </div>
+                    <div class="video-remark">${remark}</div>
+                </div>
+                <div class="video-info">
+                    <div class="video-name" title="${video.name}">${video.name}</div>
+                    <div class="video-meta">
+                        <span>${video.year || currentYear}</span>
+                        <span>${video.area || '未知'}</span>
+                    </div>
+                </div>
+            `;
+            
+            // 点击事件 - 跳转到搜索页面
+            item.addEventListener('click', function() {
+                window.location.href = `SouSuo.html?SouSuo=${encodeURIComponent(video.name)}`;
+            });
+            
+            return item;
+        }
+        
+        // 加载更多视频
+        function loadMoreVideos() {
+            if (!isLoading && hasMore) {
+                currentPage++;
+                loadVideos(false);
+            }
+        }
+        
+        // 更新加载更多按钮状态
+        function updateLoadMoreButton() {
+            const loadMoreBtn = document.getElementById('loadMoreBtn');
+            if (hasMore) {
+                loadMoreBtn.style.display = 'inline-block';
+            } else {
+                loadMoreBtn.style.display = 'none';
+            }
+        }
+        
+        // 添加滚动到底部自动加载功能
+        let scrollTimeout;
+        window.addEventListener('scroll', function() {
+            if (scrollTimeout) clearTimeout(scrollTimeout);
+            
+            scrollTimeout = setTimeout(function() {
+                const scrollPosition = window.innerHeight + window.pageYOffset;
+                const pageHeight = document.documentElement.offsetHeight;
+                const threshold = 100; // 提前100px触发加载
+                
+                if (scrollPosition >= pageHeight - threshold && !isLoading && hasMore) {
+                    loadMoreVideos();
+                }
+            }, 100);
+        });
+    </script>
+</body>
+</html>
